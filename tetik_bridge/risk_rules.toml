@@ -1,0 +1,43 @@
+# tetik_bridge/risk_rules.toml
+# Ace Trading Prop Desk kurallarından damıtılmış Tetik Risk Politikası
+
+version = 2
+rationale = "Ace Trading kurumsal prop desk kuralları: %1 sabit risk, haftalık %5 devre kesici, kademeli pozisyon küçültme ve kaldıraç tavanı."
+
+[sizing]
+# Sabit 1R risk: hesap büyüklüğünün maksimum %1.0'ı
+risk_per_trade_pct = 1.0
+# Aşırı fitil ve gürültüde sıfırlanmayı önlemek için katı kaldıraç tavanı
+max_leverage = 5
+
+[limits]
+# Günlük maksimum kabul edilebilir kayıp: %3.0 (3R)
+daily_loss_pct = 3.0
+# Haftalık devre kesici: %5.0 kayıpta o haftanın tüm işlem yetkisi dondurulur
+weekly_loss_pct = 5.0
+# 2 ardışık stop sonrası soğuma ve risk yarıya indirme
+pause_after_consecutive_losses = { count = 3, minutes = 180 }
+
+[step_down_matrix]
+# Kayıp serilerinde kanamayı durdurma basamakları
+consecutive_loss_1 = { risk_multiplier = 1.0 }
+consecutive_loss_2 = { risk_multiplier = 0.5 }
+consecutive_loss_3 = { risk_multiplier = 0.3 }
+consecutive_loss_4 = { risk_multiplier = 0.1 }
+consecutive_loss_5 = { halt = true, cooldown_hours = 48 }
+
+[[overrides]]
+# Toksik volatilite ve spread genişlemesi dönemlerinde savunma modu
+when = "session == 'ny_lunch' || session == 'weekend_low_liquidity'"
+risk_per_trade_pct = 0.5
+
+[[overrides]]
+# Devre kesici veya ardışık kayıp sonrası toparlanma haftası
+when = "drawdown_tier == 'recovery'"
+risk_per_trade_pct = 0.5
+
+[lock]
+# Açık pozisyon varken risk parametreleri asla değiştirilemez
+change_requires = "flat"
+allow_averaging_down = false
+allow_moving_stop_further = false
